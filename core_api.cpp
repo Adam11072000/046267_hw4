@@ -101,7 +101,7 @@ void Core::run_sim() {
 		while(!threads[current_thread].is_finished() && threads[current_thread].get_halt_counter() == 0){
 			execute_cmd();
 			next_cycle();
-			if(threads[current_thread].get_halt_counter() != 0){
+			if(threads[current_thread].get_halt_counter() != 0 || !is_blocked_mt){
 				break;
 			}
 		}
@@ -186,7 +186,11 @@ int Core::find_next_thread_to_run() {
 	int idx, to_return = -1;
 	while(to_return == -1) {
 		for (int i = 0; i < thread_num; i++) {
-			idx = (i + current_thread) % thread_num;
+			if(is_blocked_mt){
+				idx = (i + current_thread) % thread_num;
+			}else{
+				idx = (i + current_thread + 1) % thread_num;
+			}
 			if (!threads[idx].is_finished() && threads[idx].get_halt_counter() == 0) {
 				to_return = idx;
 				break;
@@ -220,11 +224,15 @@ void CORE_FinegrainedMT() {
 }
 
 double CORE_BlockedMT_CPI(){
-	return BlockedMTCore->get_cpi();
+	double ret = BlockedMTCore->get_cpi();
+	delete BlockedMTCore;
+	return ret;
 }
 
 double CORE_FinegrainedMT_CPI(){
-	return FineGrainedCore->get_cpi();
+	double ret = FineGrainedCore->get_cpi();
+	delete FineGrainedCore;
+	return ret;
 }
 
 void CORE_BlockedMT_CTX(tcontext* context, int threadid) {
